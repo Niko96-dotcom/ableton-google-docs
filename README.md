@@ -6,24 +6,14 @@ A Max for Live device that shows and edits a Google Doc inside Ableton Live, so 
 - Output: a `.amxd` device that you drop on a track in Live. Nothing runs in the background when the device is not in a set.
 - Turn off: delete the device from the track.
 
-## Status
+**Beta, macOS only.** Tested by its author on two Macs (Live 12.4 and Live 12 Beta). Found a bug or an idea? [Open an issue](https://github.com/Niko96-dotcom/ableton-google-docs/issues).
 
-All four phases are done: a doc list, editing, formatting tools, new docs, live updates from other people, stamps from Live, the doc stored in the Live set, and a frozen one-file device (`dist/Google Docs.amxd`, published as a GitHub release). The M5 runs the frozen device since 27.10.2026. The decisions below are made (27.10.2026).
+## Install
 
-Proven:
-- In Live 12.4.7 on the Studio (log proof, see "Testing"): the device loads, `node.script` starts, the editor window path runs, `jweb` loads the page, and messages go both ways. Live gives back the doc stored in a set, and `max/live.js` reads the playhead and the locators (`[Chorus · bar 18]` for a locator at beat 64 and the playhead at beat 70).
-- On the M5 in Live 12 Beta, by Niko (27.10.2026): sign-in, the doc list (50 docs), opening a doc, typing and saving, a new doc, formatting, a change made in Google Docs that showed up in the editor by itself (log: changed, offered, applied within 16 ms), the Stamp button with real locators (`[4. CHORUS · bar 23]`), and a saved set that opened its doc by itself (log: stored doc, then doc read 1 s after the device started; the set was not marked as changed).
-- On the M5 with the frozen device (27.10.2026): it runs from Max's cache, the stamp, the editor page and the doc list work, and a fresh load logs no Max errors.
-- Real Docs and Drive API with the device's own token on the M5 (`tools/edit-check.cjs`): a new doc; insert, replace, delete the last line, add lines at the end; heading, bold, italic, underline, strikethrough, bullets and numbers come back exactly as sent; a bold word that was not touched stays bold; a doc changed elsewhere is not overwritten.
-- Working together, against the real API on the M5 with a scripted buddy: a buddy change the device has not seen yet is merged by Google; one it has seen is kept while the device moves its own change; the buddy's formatting stays; both changing the same line is refused and the buddy's text stays.
-- The editor page in headless Chrome (`test/page.test.mjs`): a doc with every kind of content survives the editor's round trip exactly; typing, the toolbar, Return, Shift+Return and paste give the right blocks; an update replaces only changed paragraphs and keeps the cursor in its line; an update that comes while you type waits.
-- Sign-in, token refresh, the doc list, the edit, merge and style requests, the change check, stamps, the stored doc and the packets: unit tests against a fake Google. The generated patch and `node/main.js` agree on every message (`test/device.test.mjs`). No credential and no home folder path is in the repo (`test/secrets.test.mjs`). 66 tests in all.
+1. Download `Google-Docs.zip` from the [latest GitHub release](https://github.com/Niko96-dotcom/ableton-google-docs/releases/latest) and open it. Copy `Google Docs.amxd` into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs macOS and Live 12 with Max for Live (Max 9).
+2. Sign in once (see "Use"). The token stays on that Mac.
 
-Not proven yet:
-- a save that is merged with a buddy's change inside Live (the merge itself is proven against the real API, see above),
-- that Cmd+B, Cmd+I, Cmd+U and Cmd+Z reach the editor and not Live,
-- that the editor window floats above Live,
-- the Google login inside `jweb` (expected to be blocked; not needed by this design).
+The released device has its own OAuth client built in. Google has not verified it, so the first sign-in shows "Google hasn't verified this app", and at most 100 Google accounts can sign in with it. To use a client of your own Google Cloud project instead, see "Your own Google client". What the device accesses and stores: [PRIVACY.md](PRIVACY.md).
 
 ## Use
 
@@ -53,12 +43,25 @@ Editing limits:
 - The token: `~/Library/Application Support/ableton-google-docs/token.json` (0600). **Sign out** in the editor deletes it and revokes it at Google.
 - If something fails: `<User Library>/Google Docs/logs/device.log`. The log never holds tokens, doc names or doc text.
 
-## Install
+## Status
 
-1. Download `Google-Docs.zip` from the [latest GitHub release](https://github.com/Niko96-dotcom/ableton-google-docs/releases/latest) and open it. Copy `Google Docs.amxd` into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs Live 12 with Max for Live (Max 9).
-2. Sign in once (see "Use"). The token stays on that Mac.
+All four phases are done: a doc list, editing, formatting tools, new docs, live updates from other people, stamps from Live, the doc stored in the Live set, and a frozen one-file device (`dist/Google Docs.amxd`, published as a GitHub release). The M5 runs the frozen device since 27.10.2026. The decisions below are made (27.10.2026).
 
-The released device has its own OAuth client built in. Google has not verified it, so the first sign-in shows "Google hasn't verified this app", and at most 100 Google accounts can sign in with it. To use a client of your own Google Cloud project instead, see "Your own Google client". What the device accesses and stores: [PRIVACY.md](PRIVACY.md).
+Proven:
+- In Live 12.4.7 on the Studio (log proof, see "Testing"): the device loads, `node.script` starts, the editor window path runs, `jweb` loads the page, and messages go both ways. Live gives back the doc stored in a set, and `max/live.js` reads the playhead and the locators (`[Chorus · bar 18]` for a locator at beat 64 and the playhead at beat 70).
+- On the M5 in Live 12 Beta, by Niko (27.10.2026): sign-in, the doc list (50 docs), opening a doc, typing and saving, a new doc, formatting, a change made in Google Docs that showed up in the editor by itself (log: changed, offered, applied within 16 ms), the Stamp button with real locators (`[4. CHORUS · bar 23]`), and a saved set that opened its doc by itself (log: stored doc, then doc read 1 s after the device started; the set was not marked as changed).
+- On the M5 with the frozen device (27.10.2026): it runs from Max's cache, the stamp, the editor page and the doc list work, and a fresh load logs no Max errors.
+- Real Docs and Drive API with the device's own token on the M5 (`tools/edit-check.cjs`): a new doc; insert, replace, delete the last line, add lines at the end; heading, bold, italic, underline, strikethrough, bullets and numbers come back exactly as sent; a bold word that was not touched stays bold; a doc changed elsewhere is not overwritten.
+- Working together, against the real API on the M5 with a scripted buddy: a buddy change the device has not seen yet is merged by Google; one it has seen is kept while the device moves its own change; the buddy's formatting stays; both changing the same line is refused and the buddy's text stays.
+- The editor page in headless Chrome (`test/page.test.mjs`): a doc with every kind of content survives the editor's round trip exactly; typing, the toolbar, Return, Shift+Return and paste give the right blocks; an update replaces only changed paragraphs and keeps the cursor in its line; an update that comes while you type waits.
+- Sign-in, token refresh, the doc list, the edit, merge and style requests, the change check, stamps, the stored doc and the packets: unit tests against a fake Google. The generated patch and `node/main.js` agree on every message (`test/device.test.mjs`). No credential and no home folder path is in the repo (`test/secrets.test.mjs`). 66 tests in all.
+
+Not proven yet:
+- a save that is merged with a buddy's change inside Live (the merge itself is proven against the real API, see above),
+- that Cmd+B, Cmd+I, Cmd+U and Cmd+Z reach the editor and not Live,
+- that the editor window floats above Live,
+- the Google login inside `jweb` (expected to be blocked; not needed by this design).
+- a fresh install from the release zip on another Mac, by someone other than the author.
 
 ## Your own Google client
 
