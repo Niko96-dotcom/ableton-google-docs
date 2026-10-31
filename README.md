@@ -55,7 +55,7 @@ Editing limits:
 
 ## Install
 
-1. Download `Google Docs.amxd` from the latest GitHub release. Copy it into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs Live 12 with Max for Live (Max 9).
+1. Download `Google-Docs.zip` from the [latest GitHub release](https://github.com/Niko96-dotcom/ableton-google-docs/releases/latest) and open it. Copy `Google Docs.amxd` into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs Live 12 with Max for Live (Max 9).
 2. Sign in once (see "Use"). The token stays on that Mac.
 
 The released device has its own OAuth client built in. Google has not verified it, so the first sign-in shows "Google hasn't verified this app", and at most 100 Google accounts can sign in with it. To use a client of your own Google Cloud project instead, see "Your own Google client". What the device accesses and stores: [PRIVACY.md](PRIVACY.md).
@@ -84,7 +84,7 @@ The release carries a public OAuth client from a Google Cloud project that is us
 
 1. Make the client as in "Your own Google client", steps 1–5. Store the JSON file as `~/Library/Application Support/ableton-google-docs/release-client.json` (0600), or name it with `RELEASE_CLIENT=<file>`.
 2. `npm test`, then `node tools/build-release.mjs`. It must print "with the built-in Google client".
-3. `gh release create v<version> "dist/Google Docs.amxd"`.
+3. Zip the device, so it keeps its name (GitHub replaces spaces in file names): `(cd dist && COPYFILE_DISABLE=1 zip -X Google-Docs.zip "Google Docs.amxd")`, then `gh release create v<version> dist/Google-Docs.zip`.
 
 Limits of an unverified app: the warning at sign-in, and at most 100 accounts. `drive.metadata.readonly` (the doc list) is a restricted scope: for more accounts, Google requires a verification with a yearly security assessment (CASA). With `drive.file` alone, verification is easier, but the device then sees only the docs it made or the docs picked in Google's file picker.
 
