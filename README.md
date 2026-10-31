@@ -10,7 +10,7 @@ A Max for Live device that shows and edits a Google Doc inside Ableton Live, so 
 
 ## Install
 
-1. Download `Google-Docs.zip` from the [latest GitHub release](https://github.com/Niko96-dotcom/ableton-google-docs/releases/latest) and open it. Copy `Google Docs.amxd` into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs macOS and Live 12 with Max for Live (Max 9).
+1. Download `Google-Docs.zip` from the newest [GitHub release](https://github.com/Niko96-dotcom/ableton-google-docs/releases) and open it. Copy `Google Docs.amxd` into `<User Library>/Presets/Audio Effects/Max Audio Effect/`. It is the whole device; nothing else to install. Needs macOS and Live 12 with Max for Live (Max 9).
 2. Sign in once (see "Use"). The token stays on that Mac.
 
 The released device has its own OAuth client built in. Google has not verified it, so the first sign-in shows "Google hasn't verified this app", and at most 100 Google accounts can sign in with it. To use a client of your own Google Cloud project instead, see "Your own Google client". What the device accesses and stores: [PRIVACY.md](PRIVACY.md).
