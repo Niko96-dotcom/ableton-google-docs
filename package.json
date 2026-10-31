@@ -1,0 +1,19 @@
+{
+  "name": "ableton-google-docs",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Max for Live device that shows and edits a Google Doc inside Ableton Live",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "install-device": "node tools/install.mjs",
+    "release": "node tools/build-release.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "playwright-core": "1.58.2"
+  }
+}

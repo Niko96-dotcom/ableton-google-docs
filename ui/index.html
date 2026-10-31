@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Google Docs</title>
+<style>
+  :root {
+    --bg: #1d1d1d;
+    --panel: #262626;
+    --hover: #2f2f2f;
+    --line: #3a3a3a;
+    --text: #dcdcdc;
+    --muted: #8c8c8c;
+    --accent: #ffad56;
+    --ok: #7fc97f;
+    --bad: #ff7b6b;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.4 -apple-system, "Helvetica Neue", sans-serif; }
+  body { display: flex; flex-direction: column; padding: 14px; gap: 10px; }
+  [hidden] { display: none !important; }
+  header { display: flex; align-items: center; gap: 10px; }
+  h1 { margin: 0; font-size: 15px; font-weight: 600; flex: 1; }
+  #state { font-size: 11px; color: var(--muted); padding: 2px 8px; border: 1px solid var(--line); border-radius: 10px; }
+  #state.ok { color: var(--ok); border-color: var(--ok); }
+  button, select { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; font: inherit; cursor: pointer; white-space: nowrap; }
+  button:hover, select:hover { border-color: var(--accent); }
+  button:disabled, select:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--accent); color: #1d1d1d; border-color: var(--accent); font-weight: 600; }
+  button.link { background: none; border: none; padding: 0; color: var(--muted); text-decoration: underline; font-size: 11px; }
+  .hint { margin: 0; color: var(--muted); font-size: 12px; }
+  #signin { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .row { display: flex; gap: 8px; }
+  input { flex: 1; min-width: 0; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 7px 9px; font: inherit; }
+  input:focus, #editor:focus { outline: 1px solid var(--accent); }
+  #message { min-height: 18px; margin: 0; font-size: 12px; color: var(--muted); }
+  #message.error { color: var(--bad); }
+  .view { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  #docs { flex: 1; min-height: 0; overflow: auto; margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 4px; }
+  #docs li { display: flex; gap: 10px; align-items: baseline; padding: 8px 10px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  #docs li:last-child { border-bottom: none; }
+  #docs li:hover { background: var(--hover); }
+  #docs .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #docs .date { color: var(--muted); font-size: 11px; }
+  #docs .none { color: var(--muted); cursor: default; }
+  #docView > header h2 { margin: 0; font-size: 14px; font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #saveState { font-size: 11px; color: var(--muted); }
+  #saveState.bad { color: var(--bad); }
+
+  #toolbar { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  #toolbar button { min-width: 28px; padding: 4px 7px; }
+  #toolbar button.active { background: var(--accent); color: #1d1d1d; border-color: var(--accent); }
+  #toolbar .sep { width: 1px; height: 18px; background: var(--line); margin: 0 4px; }
+  #toolbar select { padding: 4px 6px; }
+
+  #editor { flex: 1; min-height: 0; overflow: auto; padding: 14px 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; white-space: pre-wrap; overflow-wrap: break-word; font: 14px/1.55 -apple-system, "Helvetica Neue", sans-serif; counter-reset: num; }
+  #editor[contenteditable="false"] { opacity: .85; }
+  #editor > div { margin: 0 0 2px; min-height: 1.55em; }
+  #editor > [data-style="TITLE"] { font-size: 24px; line-height: 1.3; margin: 6px 0 8px; }
+  #editor > [data-style="SUBTITLE"] { font-size: 16px; color: var(--muted); }
+  #editor > [data-style="HEADING_1"] { font-size: 20px; line-height: 1.35; margin: 10px 0 4px; }
+  #editor > [data-style="HEADING_2"] { font-size: 17px; line-height: 1.4; margin: 8px 0 4px; }
+  #editor > [data-style="HEADING_3"] { font-size: 15px; color: #b8b8b8; margin: 6px 0 2px; }
+  #editor > [data-style^="HEADING_"]:not([data-style="HEADING_1"]):not([data-style="HEADING_2"]):not([data-style="HEADING_3"]) { color: #b8b8b8; }
+  #editor > [data-list="bullet"], #editor > [data-list="number"] { position: relative; padding-left: 24px; }
+  #editor > [data-list="bullet"]::before { content: "•"; position: absolute; left: 8px; color: var(--muted); }
+  #editor > [data-list="number"] { counter-increment: num; }
+  #editor > [data-list="number"]::before { content: counter(num) "."; position: absolute; left: 0; width: 20px; text-align: right; color: var(--muted); }
+  #editor > :not([data-list="number"]) { counter-reset: num; }
+  #editor > [data-level="1"] { margin-left: 22px; }
+  #editor > [data-level="2"] { margin-left: 44px; }
+  #editor > [data-level="3"] { margin-left: 66px; }
+  #editor > .ro { color: var(--muted); background: #202020; border-left: 2px solid var(--line); padding: 4px 8px; margin: 4px 0; cursor: default; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Google Docs</h1>
+    <button id="signout" class="link" type="button" hidden>Sign out</button>
+    <span id="state">Starting…</span>
+  </header>
+
+  <section id="signin" hidden>
+    <button id="signinButton" class="primary" type="button">Sign in with Google</button>
+    <p class="hint" id="signinHint"></p>
+  </section>
+
+  <p id="message"></p>
+
+  <section id="listView" class="view" hidden>
+    <div class="row">
+      <input id="search" type="search" placeholder="Search your docs" spellcheck="false" autocomplete="off">
+      <button id="newButton" type="button" title="Creates a new Google Doc in your Drive">+ New</button>
+    </div>
+    <form id="newForm" class="row" hidden>
+      <input id="newTitle" type="text" placeholder="Title of the new doc" spellcheck="false" autocomplete="off">
+      <button class="primary" type="submit">Create</button>
+      <button id="newCancel" type="button">Cancel</button>
+    </form>
+    <ul id="docs"></ul>
+  </section>
+
+  <section id="docView" class="view" hidden>
+    <header>
+      <button id="back" type="button" title="All docs">← Docs</button>
+      <h2 id="title"></h2>
+      <span id="saveState"></span>
+      <button id="reload" type="button" title="Reads the doc again from Google Docs">Reload</button>
+    </header>
+    <div id="toolbar">
+      <select id="paraStyle" title="Paragraph style">
+        <option value="NORMAL_TEXT">Normal text</option>
+        <option value="TITLE">Title</option>
+        <option value="SUBTITLE">Subtitle</option>
+        <option value="HEADING_1">Heading 1</option>
+        <option value="HEADING_2">Heading 2</option>
+        <option value="HEADING_3">Heading 3</option>
+      </select>
+      <span class="sep"></span>
+      <button type="button" data-command="bold" title="Bold (Cmd+B)"><b>B</b></button>
+      <button type="button" data-command="italic" title="Italic (Cmd+I)"><i>I</i></button>
+      <button type="button" data-command="underline" title="Underline (Cmd+U)"><u>U</u></button>
+      <button type="button" data-command="strikeThrough" title="Strikethrough"><s>S</s></button>
+      <span class="sep"></span>
+      <button type="button" data-list="bullet" title="Bulleted list">• List</button>
+      <button type="button" data-list="number" title="Numbered list">1. List</button>
+      <span class="sep"></span>
+      <button type="button" data-command="undo" title="Undo (Cmd+Z)">↶</button>
+      <button type="button" data-command="redo" title="Redo (Cmd+Shift+Z)">↷</button>
+      <span class="sep"></span>
+      <button type="button" id="stamp" title="Inserts the locator before the playhead and the bar, from Live">⌖ Stamp</button>
+    </div>
+    <div id="editor" contenteditable="true" spellcheck="false"></div>
+  </section>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const editor = $('editor');
+  const HINTS = {
+    signedout: 'Opens your browser once. After you allow access, come back to Live.',
+    pending: 'Finish the sign-in in your browser, then come back to Live.',
+    upgrade: 'Sign in again to see your docs here. Google asks for one more permission: the names of your Drive files.',
+  };
+  // Text styles as bit flags, the same as node/google.js.
+  const FLAGS = [[1, 'b'], [2, 'i'], [4, 'u'], [8, 's']];
+  const BLOCK_TAGS = new Set(['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'UL', 'OL', 'BLOCKQUOTE', 'PRE']);
+
+  let max = null;
+  let auth = 'signedout';
+  let view = 'list';
+  let editable = false;
+  let lastSaved = '';
+  let sending = '';
+  let saving = false;
+  let saveTimer = null;
+  let after = null;
+  let incoming = null;
+  let pendingUpdate = null;
+
+  function message(text, isError = false) {
+    $('message').textContent = text;
+    $('message').classList.toggle('error', isError);
+  }
+
+  function saveState(text, bad = false) {
+    $('saveState').textContent = text;
+    $('saveState').classList.toggle('bad', bad);
+  }
+
+  function render() {
+    const signedIn = auth === 'signedin' || auth === 'upgrade';
+    $('state').textContent = { signedin: 'Signed in', upgrade: 'Signed in', pending: 'Waiting for browser', signedout: 'Not signed in' }[auth];
+    $('state').classList.toggle('ok', signedIn);
+    $('signin').hidden = auth === 'signedin';
+    $('signinButton').textContent = auth === 'upgrade' ? 'Sign in again' : 'Sign in with Google';
+    $('signinButton').disabled = auth === 'pending';
+    $('signinHint').textContent = HINTS[auth] ?? '';
+    $('signout').hidden = !signedIn;
+    $('listView').hidden = auth !== 'signedin' || view !== 'list';
+    $('docView').hidden = !signedIn || view !== 'doc';
+  }
+
+  function send(kind, data) {
+    const encoded = encodeURIComponent(JSON.stringify(data));
+    max.outlet('pkt_begin', kind);
+    for (let i = 0; i < encoded.length; i += 4000) max.outlet('pkt_chunk', `c${encoded.slice(i, i + 4000)}`);
+    max.outlet('pkt_end');
+  }
+
+  // ---- doc list
+
+  function shortDate(iso) {
+    const d = new Date(iso);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString([], d.getFullYear() === now.getFullYear() ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function showDocs({ query, files }) {
+    if (query !== $('search').value.trim()) return;
+    const list = $('docs');
+    list.replaceChildren();
+    for (const f of files) {
+      const li = document.createElement('li');
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = f.name || 'Untitled doc';
+      const date = document.createElement('span');
+      date.className = 'date';
+      date.textContent = shortDate(f.modifiedTime);
+      li.append(name, date);
+      li.addEventListener('click', () => openDoc(f.id));
+      list.append(li);
+    }
+    if (files.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'none';
+      li.textContent = query ? 'No doc with that name.' : 'No Google Docs found.';
+      list.append(li);
+    }
+    message('');
+  }
+
+  function showList() {
+    view = 'list';
+    $('newForm').hidden = true;
+    render();
+    max.outlet('find', $('search').value.trim());
+  }
+
+  function openDoc(idOrLink) {
+    message('Loading doc…');
+    max.outlet('open', idOrLink);
+  }
+
+  // ---- editor: blocks <-> DOM
+  // A paragraph is a div with data-style, data-list, data-level; its runs are
+  // text in nested b/i/u/s. A soft line break (U+000B in Google Docs) is a
+  // br. Read-only text (tables, tab titles) is a div.ro that keeps its exact
+  // text in data-text.
+
+  function renderBlock(b) {
+    const div = document.createElement('div');
+    if (b.type === 'ro') {
+      div.className = 'ro';
+      div.contentEditable = 'false';
+      div.dataset.text = b.text;
+      div.textContent = b.text.replace(/^\n/, '').replace(/\n$/, '');
+      return div;
+    }
+    div.dataset.style = b.style;
+    div.dataset.list = b.list;
+    div.dataset.level = String(b.level ?? 0);
+    for (const run of b.runs) appendRun(div, run);
+    // An empty line, or one that ends with a soft break, needs one more br
+    // to show; serialize() drops a br at the end of a paragraph.
+    if (!b.runs.length || b.runs.at(-1).text.endsWith('\u000b')) div.append(document.createElement('br'));
+    return div;
+  }
+
+  function renderBlocks(blocks) {
+    editor.replaceChildren(...blocks.map(renderBlock));
+  }
+
+  // Replaces only the paragraphs that differ, so the rest of the editor
+  // (and a cursor in it) stays as it is.
+  function patchBlocks(blocks) {
+    const old = normal(serialize());
+    const kids = [...editor.childNodes];
+    if (kids.length !== old.length || !kids.every((n) => n.nodeType === Node.ELEMENT_NODE && n.tagName === 'DIV')) return renderBlocks(blocks);
+    const next = normal(blocks);
+    const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    let pre = 0;
+    while (pre < old.length && pre < next.length && same(old[pre], next[pre])) pre++;
+    let suf = 0;
+    while (suf < old.length - pre && suf < next.length - pre && same(old[old.length - 1 - suf], next[next.length - 1 - suf])) suf++;
+    const before = kids[old.length - suf] ?? null;
+    for (const kid of kids.slice(pre, old.length - suf)) kid.remove();
+    for (const b of blocks.slice(pre, blocks.length - suf)) editor.insertBefore(renderBlock(b), before);
+  }
+
+  function appendRun(div, run) {
+    let parent = div;
+    for (const [bit, tag] of FLAGS) {
+      if (!(run.f & bit)) continue;
+      const el = document.createElement(tag);
+      parent.append(el);
+      parent = el;
+    }
+    run.text.split('\u000b').forEach((part, i) => {
+      if (i > 0) parent.append(document.createElement('br'));
+      if (part) parent.append(document.createTextNode(part));
+    });
+  }
+
+  const newParagraph = (el) => ({
+    type: 'p',
+    style: el?.dataset?.style || 'NORMAL_TEXT',
+    list: el?.dataset?.list || 'none',
+    level: Number(el?.dataset?.level || 0),
+    runs: [],
+    endsWithBr: false,
+  });
+
+  function addText(p, text, f) {
+    if (!text) return;
+    const last = p.runs.at(-1);
+    if (last && last.f === f) last.text += text;
+    else p.runs.push({ text, f });
+  }
+
+  function flagsOf(el, flags) {
+    let f = flags;
+    const tag = el.tagName;
+    const st = el.style;
+    const decoration = `${st.textDecorationLine} ${st.textDecoration}`;
+    if (tag === 'B' || tag === 'STRONG' || /^(bold|bolder|[6-9]00)$/.test(st.fontWeight)) f |= 1;
+    if (/^(normal|lighter|[1-4]00)$/.test(st.fontWeight)) f &= ~1;
+    if (tag === 'I' || tag === 'EM' || st.fontStyle === 'italic') f |= 2;
+    if (st.fontStyle === 'normal') f &= ~2;
+    if (tag === 'U' || decoration.includes('underline')) f |= 4;
+    if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL' || decoration.includes('line-through')) f |= 8;
+    return f;
+  }
+
+  function inline(node, p, flags) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      addText(p, node.data.replace(/ /g, ' ').replace(/\n/g, '\u000b'), flags);
+      if (node.data) p.endsWithBr = false;
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE || node.classList.contains('ro')) return;
+    if (node.tagName === 'BR') {
+      addText(p, '\u000b', flags);
+      p.endsWithBr = true;
+      return;
+    }
+    const f = flagsOf(node, flags);
+    for (const child of node.childNodes) inline(child, p, f);
+  }
+
+  function finish(p) {
+    if (p.endsWithBr) {
+      const last = p.runs.at(-1);
+      last.text = last.text.slice(0, -1);
+      if (!last.text) p.runs.pop();
+    }
+    delete p.endsWithBr;
+    return p;
+  }
+
+  // The editor's content as blocks, in the same form as the doc's blocks.
+  function serialize() {
+    const blocks = [];
+    let loose = null;
+    const isBlock = (n) => n.nodeType === Node.ELEMENT_NODE && (BLOCK_TAGS.has(n.tagName) || n.classList.contains('ro'));
+    const visit = (node, context) => {
+      if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('ro')) {
+        loose = null;
+        blocks.push({ type: 'ro', text: node.dataset.text });
+        return;
+      }
+      if (isBlock(node)) {
+        loose = null;
+        if ([...node.childNodes].some(isBlock)) {
+          for (const child of node.childNodes) visit(child, node);
+          loose = null;
+          return;
+        }
+        const p = newParagraph(node);
+        for (const child of node.childNodes) inline(child, p, 0);
+        blocks.push(finish(p));
+        return;
+      }
+      // Inline content outside a paragraph (after some edits) is one.
+      if (!loose) {
+        loose = newParagraph(context);
+        blocks.push(loose);
+      }
+      inline(node, loose, 0);
+    };
+    for (const node of editor.childNodes) visit(node, null);
+    for (const b of blocks) if (b.endsWithBr !== undefined) finish(b);
+    if (!blocks.some((b) => b.type === 'p')) blocks.push(finish(newParagraph(null)));
+    return blocks;
+  }
+
+  // Runs merged and empty runs dropped, so two block lists can be compared.
+  function normal(blocks) {
+    return blocks.map((b) => {
+      if (b.type === 'ro') return b;
+      const runs = [];
+      for (const r of b.runs) {
+        const text = r.text.replace(/ /g, ' ');
+        if (!text) continue;
+        const last = runs.at(-1);
+        if (last && last.f === r.f) last.text += text;
+        else runs.push({ text, f: r.f });
+      }
+      return { type: 'p', style: b.style, list: b.list, level: b.level ?? 0, runs };
+    });
+  }
+
+  // Edit only when the editor shows exactly what the doc holds. Otherwise a
+  // save could change parts that nobody touched.
+  function takeDoc(doc) {
+    lastSaved = JSON.stringify(normal(serialize()));
+    const exact = lastSaved === JSON.stringify(normal(doc.blocks));
+    editable = doc.editable && exact;
+    editor.contentEditable = editable ? 'true' : 'false';
+    for (const control of $('toolbar').querySelectorAll('button, select')) control.disabled = !editable;
+    saveState(editable ? 'Saved' : 'View only');
+    message(doc.editable && !exact ? 'This doc has content the editor cannot show exactly, so it opened read-only. Edit it in Google Docs.' : '');
+  }
+
+  function showDoc(doc) {
+    view = 'doc';
+    pendingUpdate = null;
+    $('title').textContent = doc.title || 'Untitled doc';
+    renderBlocks(doc.blocks);
+    takeDoc(doc);
+    editor.scrollTop = 0;
+    render();
+    updateToolbar();
+  }
+
+  // ---- updates: other people's changes, while the editor has none unsaved
+
+  const textOf = (blocks) => blocks.map((b) => (b.type === 'p' ? `${b.runs.map((r) => r.text).join('')}\n` : b.text)).join('');
+
+  // For each line of a, its index in b, or -1 where the line changed (as
+  // alignLines in node/google.js, which merges saves the same way).
+  function alignLines(a, b) {
+    const map = new Array(a.length).fill(-1);
+    let pre = 0;
+    while (pre < a.length && pre < b.length && a[pre] === b[pre]) map[pre] = pre++;
+    let suf = 0;
+    while (suf < a.length - pre && suf < b.length - pre && a[a.length - 1 - suf] === b[b.length - 1 - suf]) {
+      map[a.length - 1 - suf] = b.length - 1 - suf;
+      suf++;
+    }
+    const A = a.slice(pre, a.length - suf);
+    const B = b.slice(pre, b.length - suf);
+    if (!A.length || !B.length || A.length * B.length > 4e6) return map;
+    const lcs = Array.from({ length: A.length + 1 }, () => new Uint32Array(B.length + 1));
+    for (let i = A.length - 1; i >= 0; i--) {
+      for (let j = B.length - 1; j >= 0; j--) lcs[i][j] = A[i] === B[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+    }
+    for (let i = 0, j = 0; i < A.length && j < B.length; ) {
+      if (A[i] === B[j]) map[pre + i++] = pre + j++;
+      else if (lcs[i + 1][j] >= lcs[i][j + 1]) i++;
+      else j++;
+    }
+    return map;
+  }
+
+  // Where a cursor in oldText belongs in newText: in the same line, when
+  // that line is unchanged; else at the end of the changed part.
+  function moveCaret(caret, oldText, newText) {
+    const oldLines = oldText.split('\n').slice(0, -1);
+    const newLines = newText.split('\n').slice(0, -1);
+    const line = oldText.slice(0, caret).split('\n').length - 1;
+    const column = caret - (oldText.lastIndexOf('\n', caret - 1) + 1);
+    const to = alignLines(oldLines, newLines)[line];
+    if (to >= 0) return newLines.slice(0, to).reduce((n, l) => n + l.length + 1, 0) + column;
+    let start = 0;
+    while (start < oldText.length && start < newText.length && oldText[start] === newText[start]) start++;
+    let end = oldText.length;
+    let endNew = newText.length;
+    while (end > start && endNew > start && oldText[end - 1] === newText[endNew - 1]) {
+      end--;
+      endNew--;
+    }
+    return caret <= start ? caret : caret >= end ? caret + (endNew - end) : endNew;
+  }
+
+  // Characters a block adds to the editor's text: the paragraph and its line
+  // break, or the read-only text.
+  function blockLength(block) {
+    if (block.classList.contains('ro')) return block.dataset.text.length;
+    const p = newParagraph(block);
+    for (const child of block.childNodes) inline(child, p, 0);
+    return finish(p).runs.reduce((n, r) => n + r.text.length, 0) + 1;
+  }
+
+  // The cursor as an offset in the editor's text, or null.
+  function caretOffset() {
+    const sel = getSelection();
+    if (!sel.rangeCount || editor.children.length !== editor.childNodes.length) return null;
+    const { startContainer: node, startOffset: offset } = sel.getRangeAt(0);
+    if (!editor.contains(node) || node === editor) return null;
+    let total = 0;
+    for (const block of editor.children) {
+      if (block.contains(node)) {
+        if (block.classList.contains('ro')) return total;
+        const range = document.createRange();
+        range.setStart(block, 0);
+        range.setEnd(node, offset);
+        const part = range.cloneContents();
+        const chars = [...part.querySelectorAll('br')].length + (part.textContent ?? '').length;
+        return total + Math.min(chars, blockLength(block) - 1);
+      }
+      total += blockLength(block);
+    }
+    return null;
+  }
+
+  function setCaret(target) {
+    let total = 0;
+    for (const block of editor.children) {
+      const length = blockLength(block);
+      if (target < total + length && !block.classList.contains('ro')) {
+        let rest = target - total;
+        const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+        let point = [block, 0];
+        while (walker.nextNode()) {
+          const n = walker.currentNode;
+          if (n.nodeType === Node.TEXT_NODE) {
+            if (rest <= n.data.length) {
+              point = [n, rest];
+              break;
+            }
+            rest -= n.data.length;
+          } else if (n.tagName === 'BR') {
+            if (rest === 0) {
+              point = [n.parentNode, [...n.parentNode.childNodes].indexOf(n)];
+              break;
+            }
+            rest -= 1;
+          }
+        }
+        const range = document.createRange();
+        range.setStart(...point);
+        range.collapse(true);
+        const sel = getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+      total += length;
+    }
+  }
+
+  function isClean() {
+    return !saving && !$('saveState').classList.contains('bad') && JSON.stringify(normal(serialize())) === lastSaved;
+  }
+
+  function offerUpdate(update) {
+    if (view === 'doc' && isClean()) applyUpdate(update);
+    else pendingUpdate = update;
+  }
+
+  function applyUpdate(update) {
+    pendingUpdate = null;
+    const oldText = textOf(normal(serialize()));
+    const caret = document.activeElement === editor ? caretOffset() : null;
+    const scroll = editor.scrollTop;
+    patchBlocks(update.blocks);
+    takeDoc(update);
+    if (caret !== null && editable) setCaret(moveCaret(caret, oldText, textOf(normal(update.blocks))));
+    editor.scrollTop = scroll;
+    updateToolbar();
+    max.outlet('synced', update.id);
+    if (editable) {
+      saveState('Updated');
+      setTimeout(() => {
+        if ($('saveState').textContent === 'Updated') saveState('Saved');
+      }, 2000);
+    }
+  }
+
+  // ---- saving: a moment after the last change; one save at a time
+
+  function changed() {
+    if (!editable) return;
+    saveState('Unsaved changes');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveNow, 1000);
+  }
+
+  function saveNow() {
+    clearTimeout(saveTimer);
+    if (saving) return;
+    const blocks = normal(serialize());
+    const key = JSON.stringify(blocks);
+    if (!editable || key === lastSaved) {
+      if (editable) saveState('Saved');
+      if (pendingUpdate && view === 'doc') applyUpdate(pendingUpdate);
+      if (after) {
+        const next = after;
+        after = null;
+        next();
+      }
+      return;
+    }
+    saving = true;
+    sending = key;
+    saveState('Saving…');
+    send('save', { blocks });
+  }
+
+  function saved(result) {
+    saving = false;
+    if (result.ok) {
+      lastSaved = sending;
+      // The doc now holds this save; an update offered before it is stale.
+      pendingUpdate = null;
+      message('');
+      saveNow();
+      return;
+    }
+    after = null;
+    saveState(result.conflict ? 'Changed in Google Docs' : 'Not saved', true);
+    message(result.conflict ? result.message : `${result.message} Undo your change (↶) or press Reload.`, true);
+  }
+
+  // ---- toolbar
+
+  // The paragraphs that the selection touches.
+  function selectedParagraphs() {
+    const sel = getSelection();
+    if (!sel.rangeCount) return [];
+    const range = sel.getRangeAt(0);
+    if (!editor.contains(range.commonAncestorContainer)) return [];
+    const top = (node, offset) => {
+      if (node === editor) return editor.childNodes[Math.min(offset, editor.childNodes.length - 1)];
+      while (node && node.parentNode !== editor) node = node.parentNode;
+      return node;
+    };
+    const first = top(range.startContainer, range.startOffset);
+    const last = top(range.endContainer, range.endOffset);
+    const out = [];
+    for (let n = first; n; n = n.nextSibling) {
+      if (n.nodeType === Node.ELEMENT_NODE && !n.classList.contains('ro')) out.push(n);
+      if (n === last) break;
+    }
+    return out;
+  }
+
+  function updateToolbar() {
+    for (const button of $('toolbar').querySelectorAll('[data-command]')) {
+      const command = button.dataset.command;
+      if (command === 'undo' || command === 'redo') continue;
+      button.classList.toggle('active', editable && document.queryCommandState(command));
+    }
+    const paragraphs = selectedParagraphs();
+    for (const button of $('toolbar').querySelectorAll('[data-list]')) {
+      button.classList.toggle('active', paragraphs.length > 0 && paragraphs.every((p) => p.dataset.list === button.dataset.list));
+    }
+    const style = paragraphs[0]?.dataset.style ?? 'NORMAL_TEXT';
+    $('paraStyle').value = [...$('paraStyle').options].some((o) => o.value === style) ? style : 'NORMAL_TEXT';
+  }
+
+  let savedRange = null;
+  function keepSelection() {
+    const sel = getSelection();
+    savedRange = sel.rangeCount && editor.contains(sel.getRangeAt(0).commonAncestorContainer) ? sel.getRangeAt(0).cloneRange() : null;
+  }
+  function restoreSelection() {
+    if (!savedRange) return;
+    editor.focus();
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
+  }
+
+  function setupToolbar() {
+    document.execCommand('styleWithCSS', false, false);
+    document.execCommand('defaultParagraphSeparator', false, 'div');
+    // Buttons must not take the focus, or the selection in the editor is lost.
+    $('toolbar').addEventListener('mousedown', (event) => {
+      if (event.target.closest('button')) event.preventDefault();
+    });
+    for (const button of $('toolbar').querySelectorAll('[data-command]')) {
+      button.addEventListener('click', () => {
+        editor.focus();
+        document.execCommand(button.dataset.command);
+        updateToolbar();
+        changed();
+      });
+    }
+    for (const button of $('toolbar').querySelectorAll('[data-list]')) {
+      button.addEventListener('click', () => {
+        const paragraphs = selectedParagraphs();
+        const all = paragraphs.every((p) => p.dataset.list === button.dataset.list);
+        for (const p of paragraphs) p.dataset.list = all ? 'none' : button.dataset.list;
+        updateToolbar();
+        changed();
+      });
+    }
+    $('stamp').addEventListener('click', () => max.outlet('stamp'));
+    $('paraStyle').addEventListener('mousedown', keepSelection);
+    $('paraStyle').addEventListener('focus', keepSelection);
+    $('paraStyle').addEventListener('change', () => {
+      restoreSelection();
+      for (const p of selectedParagraphs()) p.dataset.style = $('paraStyle').value;
+      updateToolbar();
+      changed();
+    });
+    document.addEventListener('selectionchange', () => {
+      if (view === 'doc') updateToolbar();
+    });
+    editor.addEventListener('input', changed);
+    // Pasted text comes in as plain text, line by line, so no foreign
+    // markup gets into the doc.
+    editor.addEventListener('paste', (event) => {
+      event.preventDefault();
+      const text = (event.clipboardData?.getData('text/plain') ?? '').replace(/\r\n?/g, '\n');
+      text.split('\n').forEach((line, i) => {
+        if (i > 0) document.execCommand('insertParagraph');
+        if (line) document.execCommand('insertText', false, line);
+      });
+    });
+  }
+
+  // A stamp from Live goes where the cursor is; without a cursor in the doc
+  // it starts a new line at the end.
+  function insertStamp(text) {
+    if (!editable || view !== 'doc') return;
+    const sel = getSelection();
+    const range = sel.rangeCount ? sel.getRangeAt(0) : null;
+    if (document.activeElement !== editor || !range || !editor.contains(range.commonAncestorContainer) || range.commonAncestorContainer === editor) {
+      const line = renderBlock({ type: 'p', style: 'NORMAL_TEXT', list: 'none', level: 0, runs: [] });
+      editor.append(line);
+      editor.focus();
+      const end = document.createRange();
+      end.setStart(line, 0);
+      end.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(end);
+      line.scrollIntoView({ block: 'nearest' });
+    }
+    document.execCommand('insertText', false, text);
+    changed();
+  }
+
+  function packet(kind, data) {
+    if (kind === 'docs') showDocs(data);
+    else if (kind === 'doc') showDoc(data);
+    else if (kind === 'saved') saved(data);
+    else if (kind === 'update') offerUpdate(data);
+    else if (kind === 'stamp') insertStamp(data.text);
+  }
+
+  // jweb adds window.max to the page; it may arrive after this script runs.
+  function whenMax(callback, tries = 50) {
+    if (window.max) return callback(window.max);
+    if (tries === 0) {
+      $('state').textContent = 'Preview: not inside Max';
+      return;
+    }
+    setTimeout(() => whenMax(callback, tries - 1), 100);
+  }
+
+  whenMax((m) => {
+    max = m;
+    max.bindInlet('hello', () => max.outlet('ack'));
+    max.bindInlet('auth', (state) => {
+      const before = auth;
+      auth = state;
+      render();
+      if (state === 'signedin' && before !== 'signedin' && view === 'list') showList();
+    });
+    max.bindInlet('busy', (...parts) => message(parts.join(' ')));
+    max.bindInlet('error', (...parts) => message(parts.join(' '), true));
+    max.bindInlet('pkt_begin', (kind) => { incoming = { kind, parts: [] }; });
+    max.bindInlet('pkt_chunk', (chunk) => incoming?.parts.push(String(chunk).slice(1)));
+    max.bindInlet('pkt_end', () => {
+      const done = incoming;
+      incoming = null;
+      if (done) packet(done.kind, JSON.parse(decodeURIComponent(done.parts.join(''))));
+    });
+
+    $('signinButton').addEventListener('click', () => max.outlet('signin'));
+    $('signout').addEventListener('click', () => {
+      view = 'list';
+      max.outlet('signout');
+    });
+    let searchTimer = null;
+    $('search').addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        const value = $('search').value.trim();
+        if (/docs\.google\.com\/document\//.test(value)) openDoc(value);
+        else max.outlet('find', value);
+      }, 300);
+    });
+    $('newButton').addEventListener('click', () => {
+      $('newForm').hidden = false;
+      $('newTitle').value = '';
+      $('newTitle').focus();
+    });
+    $('newCancel').addEventListener('click', () => { $('newForm').hidden = true; });
+    $('newForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      $('newForm').hidden = true;
+      message('Creating doc…');
+      max.outlet('create', $('newTitle').value.trim());
+    });
+    $('back').addEventListener('click', () => {
+      after = showList;
+      saveNow();
+    });
+    $('reload').addEventListener('click', () => {
+      const reload = () => {
+        message('Loading doc…');
+        max.outlet('refresh');
+      };
+      if ($('saveState').classList.contains('bad')) return reload();
+      after = reload;
+      saveNow();
+    });
+    setupToolbar();
+
+    max.outlet('ready', navigator.userAgent, window.innerWidth, window.innerHeight);
+  });
+  render();
+</script>
+</body>
+</html>

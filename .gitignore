@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+
+# Google credentials and tokens never go into git
+client_secret*.json
+client.json
+release-client.json
+token*.json
+*.token
+.env
+scratch/
+
+# The frozen device is built (tools/build-release.mjs) and published as a GitHub release
+dist/
