@@ -1,6 +1,6 @@
 {
   "name": "ableton-google-docs",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "license": "MIT",
   "description": "Max for Live device that shows and edits a Google Doc inside Ableton Live",
